@@ -1,58 +1,56 @@
-import React from 'react';
-import logo from './logo.svg';
-import { Counter } from './features/counter/Counter';
-import './App.css';
+import React, { Suspense } from 'react';
+import { Route, Routes } from 'react-router-dom';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <Counter />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <span>
-          <span>Learn </span>
-          <a
-            className="App-link"
-            href="https://reactjs.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux-toolkit.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux Toolkit
-          </a>
-          ,<span> and </span>
-          <a
-            className="App-link"
-            href="https://react-redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React Redux
-          </a>
-        </span>
-      </header>
-    </div>
-  );
-}
+import MainLayout from './layouts/MainLayout';
+
+import './index.css';
+import { useCustomDispatch, useCustomSelector } from './hooks/store';
+import { getUnique } from './utils/getUnique';
+import { addCity } from './store/thunks/addCity';
+
+const Home = React.lazy(() => import('./Pages/Home'));
+const DetailWeather = React.lazy(() => import('./Pages/DetailWeather'));
+
+const App = () => {
+    const dispatch = useCustomDispatch();
+    const { cities } = useCustomSelector((state) => state.citiesSliceReducer);
+
+    if (!localStorage.hasOwnProperty('cities')) {
+        localStorage.setItem('cities', JSON.stringify(getUnique(cities)));
+    }
+
+    const cityList = JSON.parse(localStorage.getItem('cities') || '');
+
+    if (cities.length < cityList.length) {
+        for (let i = 0; i < cityList.length; i++) {
+            if (cities.indexOf(cityList[i]) === -1) {
+                dispatch(addCity(cityList[i]));
+            }
+        }
+    }
+
+    return (
+        <Routes data-testid="router">
+            <Route path="/" element={<MainLayout />}>
+                <Route
+                    path=""
+                    element={
+                        <Suspense fallback={<div>loading...</div>}>
+                            <Home cities={cities} />
+                        </Suspense>
+                    }
+                />
+                <Route
+                    path="/:name"
+                    element={
+                        <Suspense fallback={<div>loading...</div>}>
+                            <DetailWeather />
+                        </Suspense>
+                    }
+                />
+            </Route>
+        </Routes>
+    );
+};
 
 export default App;
